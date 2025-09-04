@@ -1,0 +1,173 @@
+[gd_scene load_steps=23 format=3 uid="uid://7fi4re8m1xqk"]
+
+[ext_resource type="Texture2D" uid="uid://cnmuj3qjmjsqt" path="res://black/texture_02.png" id="1_noarx"]
+[ext_resource type="Texture2D" uid="uid://bl2bibu4bo27h" path="res://texture_02_normal.png" id="2_a0tk4"]
+[ext_resource type="Texture2D" uid="uid://cdhymt3yi6mc" path="res://purple/texture_02.png" id="3_a0tk4"]
+[ext_resource type="Script" uid="uid://bjmhr4mqhi3wf" path="res://car.gd" id="3_i5arm"]
+[ext_resource type="Texture2D" uid="uid://bfqbl1xnu87m0" path="res://orange/texture_02.png" id="4_r3fl7"]
+[ext_resource type="Script" uid="uid://c2i17dts7che4" path="res://camera.gd" id="5_jka67"]
+[ext_resource type="PackedScene" uid="uid://jilufi8811d4" path="res://models/fish.blend" id="7_jsk3o"]
+[ext_resource type="Texture2D" uid="uid://df001rnaneivb" path="res://red/texture_02.png" id="7_wc5p8"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_i5arm"]
+sky_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
+ground_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
+
+[sub_resource type="Sky" id="Sky_wc5p8"]
+sky_material = SubResource("ProceduralSkyMaterial_i5arm")
+
+[sub_resource type="Environment" id="Environment_jsk3o"]
+background_mode = 2
+sky = SubResource("Sky_wc5p8")
+tonemap_mode = 2
+glow_enabled = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_r3fl7"]
+albedo_texture = ExtResource("1_noarx")
+normal_enabled = true
+normal_texture = ExtResource("2_a0tk4")
+uv1_triplanar = true
+uv1_world_triplanar = true
+texture_filter = 5
+
+[sub_resource type="BoxMesh" id="BoxMesh_jka67"]
+material = SubResource("StandardMaterial3D_r3fl7")
+size = Vector3(10000, 1, 10000)
+subdivide_width = 2
+subdivide_height = 2
+subdivide_depth = 2
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_i5arm"]
+size = Vector3(10000, 1, 10000)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_noarx"]
+size = Vector3(1, 0.5, 2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jka67"]
+albedo_texture = ExtResource("3_a0tk4")
+normal_enabled = true
+normal_texture = ExtResource("2_a0tk4")
+uv1_scale = Vector3(20, 20, 20)
+texture_filter = 5
+
+[sub_resource type="BoxMesh" id="BoxMesh_i5arm"]
+material = SubResource("StandardMaterial3D_jka67")
+size = Vector3(1, 0.5, 2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_i5arm"]
+albedo_texture = ExtResource("4_r3fl7")
+normal_enabled = true
+normal_texture = ExtResource("2_a0tk4")
+uv1_scale = Vector3(20, 20, 20)
+texture_filter = 5
+
+[sub_resource type="BoxMesh" id="BoxMesh_wc5p8"]
+material = SubResource("StandardMaterial3D_i5arm")
+size = Vector3(0.5, 0.5, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jsk3o"]
+albedo_texture = ExtResource("7_wc5p8")
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_i5arm"]
+material = SubResource("StandardMaterial3D_jsk3o")
+top_radius = 0.3
+bottom_radius = 0.3
+height = 0.1
+
+[sub_resource type="BoxMesh" id="BoxMesh_jsk3o"]
+size = Vector3(0.01, 0.01, 0.3)
+
+[node name="Node3D" type="Node3D"]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, 0.75, -0.433013, 0, 0, 0)
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_jsk3o")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="."]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="StaticBody3D"]
+mesh = SubResource("BoxMesh_jka67")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
+visible = false
+shape = SubResource("BoxShape3D_i5arm")
+
+[node name="RigidBody3D" type="RigidBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.19718, 0)
+mass = 750.0
+script = ExtResource("3_i5arm")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RigidBody3D"]
+shape = SubResource("BoxShape3D_noarx")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RigidBody3D"]
+mesh = SubResource("BoxMesh_i5arm")
+
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="RigidBody3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, -0.75)
+visible = false
+mesh = SubResource("BoxMesh_wc5p8")
+
+[node name="Node3D" type="Node3D" parent="RigidBody3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25988, 0)
+script = ExtResource("5_jka67")
+
+[node name="Camera3D" type="Camera3D" parent="RigidBody3D/Node3D"]
+transform = Transform3D(1, 0, 1.06581e-14, 0, 1, 0, -1.06581e-14, 0, 1, 0, -0.67552, 3)
+
+[node name="RemoteTransform3D" type="RemoteTransform3D" parent="RigidBody3D/Node3D/Camera3D"]
+remote_path = NodePath("../../../../SubViewportContainer/SubViewport/Camera3D")
+update_rotation = false
+update_scale = false
+
+[node name="WheelMesh" type="MeshInstance3D" parent="RigidBody3D"]
+transform = Transform3D(-4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0, 0, 1, 1, 0, 0)
+visible = false
+mesh = SubResource("CylinderMesh_i5arm")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RigidBody3D/WheelMesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0663927, 0.141491)
+mesh = SubResource("BoxMesh_jsk3o")
+
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="RigidBody3D/WheelMesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0527743, 0.141491)
+mesh = SubResource("BoxMesh_jsk3o")
+
+[node name="fish" parent="RigidBody3D" instance=ExtResource("7_jsk3o")]
+transform = Transform3D(-2.5, 0, 3.77489e-07, 0, 2.5, 0, -3.77489e-07, 0, -2.5, 0, 0.187169, -0.757209)
+
+[node name="CSGBox3D" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.3174, 13, -20)
+use_collision = true
+size = Vector3(3, 25, 25)
+
+[node name="CSGCylinder3D" type="CSGCylinder3D" parent="CSGBox3D"]
+transform = Transform3D(-4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0, 0, 1, 1.04272, -2.553, 6)
+operation = 2
+radius = 11.999
+height = 4.08545
+sides = 32
+
+[node name="Label" type="Label" parent="."]
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="SubViewportContainer" type="SubViewportContainer" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
+offset_bottom = 40.0
+grow_horizontal = 0
+
+[node name="SubViewport" type="SubViewport" parent="SubViewportContainer"]
+handle_input_locally = false
+render_target_update_mode = 4
+
+[node name="Camera3D" type="Camera3D" parent="SubViewportContainer/SubViewport"]
+transform = Transform3D(1, 1.51461e-27, 1.06581e-14, -1.06581e-14, -4.37114e-08, 1, 4.65882e-22, -1, -4.37114e-08, 0, 2.78154, 3)
+projection = 1
+size = 50.0
