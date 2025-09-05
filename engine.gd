@@ -1,7 +1,7 @@
 class_name CarEngine
 
 var angular_velocity := 0.0
-var inertia := 0.165
+var inertia := 0.12
 
 const AV_2_RPM := 60.0 / (2.0 * PI)
 
@@ -19,9 +19,9 @@ var t := 0.0
 var current_applied_torque := 0.0
 
 func _init():
-	torque_curve.push_back(Vector2(0.0, 165.0))
-	torque_curve.push_back(Vector2(5000.0, 200.0))
-	torque_curve.push_back(Vector2(7000.0, 250.0))
+	torque_curve.push_back(Vector2(0.0, 100.0))
+	torque_curve.push_back(Vector2(5000.0, 150.0))
+	torque_curve.push_back(Vector2(7000.0, 150.0))
 
 func sample_torque(rpm: float) -> float:
 	for i in range(torque_curve.size()):

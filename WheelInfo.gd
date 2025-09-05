@@ -6,7 +6,7 @@ var resting_legth := 0.0
 var max_length := 0.5
 var min_length := 0.0
 var extension := 0.0
-var radius := 0.3
+var radius := 0.2883
 var angular_vel := 0.0
 var direction := Vector3.DOWN
 var mi: MeshInstance3D
@@ -17,6 +17,7 @@ var steer := 0.0
 var steerable := false
 var last_torque := 0.0
 var inertia := 0.0
+var spring_compression := 0.0
 
 enum DifferentialSide {
 	NOT_DRIVEN,

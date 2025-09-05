@@ -1,9 +1,10 @@
-[gd_scene load_steps=23 format=3 uid="uid://7fi4re8m1xqk"]
+[gd_scene load_steps=26 format=3 uid="uid://7fi4re8m1xqk"]
 
 [ext_resource type="Texture2D" uid="uid://cnmuj3qjmjsqt" path="res://black/texture_02.png" id="1_noarx"]
 [ext_resource type="Texture2D" uid="uid://bl2bibu4bo27h" path="res://texture_02_normal.png" id="2_a0tk4"]
 [ext_resource type="Texture2D" uid="uid://cdhymt3yi6mc" path="res://purple/texture_02.png" id="3_a0tk4"]
 [ext_resource type="Script" uid="uid://bjmhr4mqhi3wf" path="res://car.gd" id="3_i5arm"]
+[ext_resource type="AudioStream" uid="uid://benvw6k0f5x0y" path="res://engine-7k.wav" id="4_4arys"]
 [ext_resource type="Texture2D" uid="uid://bfqbl1xnu87m0" path="res://orange/texture_02.png" id="4_r3fl7"]
 [ext_resource type="Script" uid="uid://c2i17dts7che4" path="res://camera.gd" id="5_jka67"]
 [ext_resource type="PackedScene" uid="uid://jilufi8811d4" path="res://models/fish.blend" id="7_jsk3o"]
@@ -33,6 +34,21 @@ texture_filter = 5
 [sub_resource type="BoxMesh" id="BoxMesh_jka67"]
 material = SubResource("StandardMaterial3D_r3fl7")
 size = Vector3(10000, 1, 10000)
+subdivide_width = 2
+subdivide_height = 2
+subdivide_depth = 2
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4arys"]
+albedo_texture = ExtResource("4_r3fl7")
+normal_enabled = true
+normal_texture = ExtResource("2_a0tk4")
+uv1_triplanar = true
+uv1_world_triplanar = true
+texture_filter = 5
+
+[sub_resource type="BoxMesh" id="BoxMesh_6iypd"]
+material = SubResource("StandardMaterial3D_4arys")
+size = Vector3(10000, 1, 5)
 subdivide_width = 2
 subdivide_height = 2
 subdivide_depth = 2
@@ -70,8 +86,8 @@ albedo_texture = ExtResource("7_wc5p8")
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_i5arm"]
 material = SubResource("StandardMaterial3D_jsk3o")
-top_radius = 0.3
-bottom_radius = 0.3
+top_radius = 0.288
+bottom_radius = 0.288
 height = 0.1
 
 [sub_resource type="BoxMesh" id="BoxMesh_jsk3o"]
@@ -91,14 +107,21 @@ environment = SubResource("Environment_jsk3o")
 [node name="MeshInstance3D" type="MeshInstance3D" parent="StaticBody3D"]
 mesh = SubResource("BoxMesh_jka67")
 
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="StaticBody3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
+mesh = SubResource("BoxMesh_6iypd")
+
 [node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
-visible = false
 shape = SubResource("BoxShape3D_i5arm")
 
 [node name="RigidBody3D" type="RigidBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.19718, 0)
 mass = 750.0
 script = ExtResource("3_i5arm")
+
+[node name="AudioStreamPlayer3D" type="AudioStreamPlayer3D" parent="RigidBody3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1)
+stream = ExtResource("4_4arys")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="RigidBody3D"]
 shape = SubResource("BoxShape3D_noarx")
@@ -152,10 +175,14 @@ height = 4.08545
 sides = 32
 
 [node name="Label" type="Label" parent="."]
-offset_right = 40.0
-offset_bottom = 23.0
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_right = 1.0
+grow_vertical = 2
+vertical_alignment = 2
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="."]
+visible = false
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
@@ -165,7 +192,7 @@ grow_horizontal = 0
 
 [node name="SubViewport" type="SubViewport" parent="SubViewportContainer"]
 handle_input_locally = false
-render_target_update_mode = 4
+render_target_update_mode = 0
 
 [node name="Camera3D" type="Camera3D" parent="SubViewportContainer/SubViewport"]
 transform = Transform3D(1, 1.51461e-27, 1.06581e-14, -1.06581e-14, -4.37114e-08, 1, 4.65882e-22, -1, -4.37114e-08, 0, 2.78154, 3)

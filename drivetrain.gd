@@ -7,21 +7,22 @@ var negative_gearbox_ratios: PackedFloat32Array = [
 ]
 
 var positive_gearbox_ratios: PackedFloat32Array = [
-	2.880,
-	1.91,
-	1.27,
-	0.0
+	3.166,
+	1.904,
+	1.310,
+	0.969,
+	0.815
 ]
 
 const GEAR_NEUTRAL = 0
 
 var current_gear := 0
 
-var final_drive := 3.27
+var final_drive := 4.312
 
 var clutch_max_torque := 500.0
-var clutch_stiffness := 10.0
-var clutch_damping := 1.7
+var clutch_stiffness := 1.8
+var clutch_damping := 0.7
 var clutch_torque := 0.0
 
 func get_gear_ratio(gear_idx: int) -> float:
