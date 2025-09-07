@@ -115,8 +115,10 @@ mesh = SubResource("BoxMesh_6iypd")
 shape = SubResource("BoxShape3D_i5arm")
 
 [node name="RigidBody3D" type="RigidBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.19718, 0)
-mass = 750.0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.18005, 0)
+mass = 1100.0
+linear_damp_mode = 1
+angular_damp_mode = 1
 script = ExtResource("3_i5arm")
 
 [node name="AudioStreamPlayer3D" type="AudioStreamPlayer3D" parent="RigidBody3D"]
@@ -195,6 +197,6 @@ handle_input_locally = false
 render_target_update_mode = 0
 
 [node name="Camera3D" type="Camera3D" parent="SubViewportContainer/SubViewport"]
-transform = Transform3D(1, 1.51461e-27, 1.06581e-14, -1.06581e-14, -4.37114e-08, 1, 4.65882e-22, -1, -4.37114e-08, 0, 2.78154, 3)
+transform = Transform3D(1, 1.51461e-27, 1.06581e-14, -1.06581e-14, -4.37114e-08, 1, 4.65882e-22, -1, -4.37114e-08, 0, 1.76441, 3)
 projection = 1
 size = 50.0

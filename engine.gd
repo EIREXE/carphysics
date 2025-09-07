@@ -10,7 +10,7 @@ var torque_curve: PackedVector2Array
 var coast_ref_rpm := 7000.0
 var coast_ref_torque := 70.0
 var coast_ref_non_linearity := 0.0
-var rpm_limit := 7000.0
+var rpm_limit := 7250.0
 var power_cut_frequency_hz := 20.0
 
 var last_limiter_hit := 0.0
@@ -19,9 +19,32 @@ var t := 0.0
 var current_applied_torque := 0.0
 
 func _init():
-	torque_curve.push_back(Vector2(0.0, 100.0))
-	torque_curve.push_back(Vector2(5000.0, 150.0))
-	torque_curve.push_back(Vector2(7000.0, 150.0))
+	var torque_curve_data := [
+		0.0, 100.0,
+		500.0,100.0,
+		1000.0,96.0,
+		1500.0,104.0,
+		2000.0,112.0,
+		2500.0,115.0,
+		3000.0,117.0,
+		3500.0,113.0,
+		4000.0,122.0,
+		4500.0,125.0,
+		5000.0,124.0,
+		5200.0,126.0,
+		5500.0,125.0,
+		6000.0,124.0,
+		6500.0,122.0,
+		6600.0,122.0,
+		7000.0,114.0,
+		7500.0,106.0,
+		8000.0,96.0,
+		8500.0,87.0,
+		9000.0,0.0
+	]
+	
+	for i in range(torque_curve_data.size() / 2):
+		torque_curve.push_back(Vector2(torque_curve_data[i*2], torque_curve_data[i*2+1]))
 
 func sample_torque(rpm: float) -> float:
 	for i in range(torque_curve.size()):

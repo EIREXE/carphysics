@@ -30,7 +30,8 @@ var engine := CarEngine.new()
 
 enum DrivetrainTorquesGraphChannels {
 	CLUTCH_TORQUE,
-	ENGINE_TORQUE
+	ENGINE_TORQUE,
+	WHEEL_FORCE
 }
 
 func _ready() -> void:
@@ -87,7 +88,8 @@ func _ready() -> void:
 	wheel_torque_graph.set_limits(-250.0, 250.0)
 	drivetrain_torques_graph.channel_set_name(DrivetrainTorquesGraphChannels.CLUTCH_TORQUE, "Clutch torque")
 	drivetrain_torques_graph.channel_set_name(DrivetrainTorquesGraphChannels.ENGINE_TORQUE, "Engine net torque")
-	drivetrain_torques_graph.set_limits(-300.0, 300.0)
+	drivetrain_torques_graph.channel_set_name(DrivetrainTorquesGraphChannels.WHEEL_FORCE, "Longitudinal wheel force")
+	drivetrain_torques_graph.set_limits(-3000.0, 3000.0)
 	# FL
 	var fl := WheelInfo.new()
 	fl.attachment_point = Vector3(-0.65, 0.0, -1.0)
@@ -237,11 +239,29 @@ func calc_slip_angle(wheel: WheelInfo, wheel_velocity_forward: float, wheel_velo
 	return -atan(wheel.differential_tan_slip_angle)
 
 func get_longitudinal_stiffness_from_vertical_load(vertical_load: float) -> float:
-	return vertical_load * peak * stiff * z_shape
+	return vertical_load * tire_stiffness
+
+func calculate_longitudinal_slip_stiffness(y_force: float, slip_y: float = 0.0, numerical: bool = false) -> float:
+	# Base stiffness parameter
+	var stiffness = 500000.0 * tire_stiffness * pow(con_patch, 2)
+
+	# In the linear region (crit_length >= con_patch), analytical solution
+	if not numerical:
+		return stiffness / (1.0 - slip_y)
+
+	# Numerical differentiation for sliding region or verification
+	var slip_x_small = 0.001  # Small slip for numerical derivative
+	var slip = Vector2(slip_x_small, slip_y)
+	var force = brush(slip, y_force)  # Call the brush function
+	var fx = force.x  # Longitudinal force
+
+	# Compute stiffness as dFx/dsx
+	return fx / slip_x_small
+
 
 func aslr(delta: float, wheel_radius: float, wheel_angular_velocity: float, wheel_longitudinal_velocity: float, wheel_inertia: float, chassis_mass: float, vertical_load: float) -> float:
 	var tau_m := delta * 0.5
-	var stiffness := get_longitudinal_stiffness_from_vertical_load(abs(vertical_load)) # replaced with longitudinal slip stiffness from tyre model based on vertical load
+	var stiffness := calculate_longitudinal_slip_stiffness(vertical_load, 0.0) # replaced with longitudinal slip stiffness from tyre model based on vertical load
 	const SAFETY_FACTOR := 1.1
 	var marginal_speed := tau_m * stiffness * (((wheel_radius * wheel_radius) / wheel_inertia) + (1.0 / chassis_mass))
 	var kp: float = (wheel_radius * wheel_angular_velocity - wheel_longitudinal_velocity) / max(abs(wheel_longitudinal_velocity), SAFETY_FACTOR * marginal_speed)
@@ -283,6 +303,7 @@ func _physics_process(delta: float) -> void:
 		if not $AudioStreamPlayer3D.playing:
 			$AudioStreamPlayer3D.playing = true
 			$AudioStreamPlayer3D.play()
+	var longitudinal_forces := 0.0
 	for wheel_i in range(wheels.size()):
 		var wheel := wheels[wheel_i]
 		var wp_wheel_attachment_point = to_global(wheel.attachment_point)
@@ -358,10 +379,13 @@ func _physics_process(delta: float) -> void:
 			tire_forces_longitudinal_graph.graph_update(wheel_i, z_force)
 			wheel_torque_graph.graph_update(wheel_i, net_torque)
 			
+			longitudinal_forces += z_force
+			
 			if wheel.steerable:
 				wheel.steer = 0.0
 				if Input.is_action_pressed("ui_left"):
 					wheel.steer = deg_to_rad(25.0)
 				if Input.is_action_pressed("ui_right"):
 					wheel.steer = -deg_to_rad(25.0)
+	drivetrain_torques_graph.graph_update(DrivetrainTorquesGraphChannels.WHEEL_FORCE, longitudinal_forces)
 	im.surface_end()
