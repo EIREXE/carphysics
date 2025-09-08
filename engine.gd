@@ -18,6 +18,8 @@ var t := 0.0
 
 var current_applied_torque := 0.0
 
+var effective_throttle := 0.0
+
 func _init():
 	var torque_curve_data := [
 		0.0, 100.0,
@@ -67,6 +69,18 @@ func update(throttle: float, delta: float, clutch_torque: float):
 	var current_rpm := angular_velocity * AV_2_RPM
 	var torque_at_rpm := sample_torque(current_rpm)
 	var coast_torque_at_rpm := sample_coast(current_rpm)
+	
+	# Idle regulation
+	
+	var activeIdleRange := 0.25;
+	var idleThrottle := coast_torque_at_rpm / sample_torque(current_rpm);
+	var idle_rpm := 1000.0
+	var idleFadeRPM := inverse_lerp(idle_rpm + (rpm_limit - idle_rpm) * activeIdleRange, idle_rpm, current_rpm) as float
+	idleThrottle *= idleFadeRPM;
+	var _throttle = lerp(idleThrottle,1.0,throttle)
+	_throttle = clamp(_throttle, 0.0, 1.0)
+	throttle = _throttle
+	effective_throttle = throttle
 	
 	var net_torque := lerp(-coast_torque_at_rpm, torque_at_rpm, throttle) as float
 	net_torque -= clutch_torque

@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3 uid="uid://7fi4re8m1xqk"]
+[gd_scene load_steps=30 format=3 uid="uid://7fi4re8m1xqk"]
 
 [ext_resource type="Texture2D" uid="uid://cnmuj3qjmjsqt" path="res://black/texture_02.png" id="1_noarx"]
 [ext_resource type="Texture2D" uid="uid://bl2bibu4bo27h" path="res://texture_02_normal.png" id="2_a0tk4"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://c2i17dts7che4" path="res://camera.gd" id="5_jka67"]
 [ext_resource type="PackedScene" uid="uid://jilufi8811d4" path="res://models/fish.blend" id="7_jsk3o"]
 [ext_resource type="Texture2D" uid="uid://df001rnaneivb" path="res://red/texture_02.png" id="7_wc5p8"]
+[ext_resource type="Script" uid="uid://blsnrg0tke6i2" path="res://car_inputs.gd" id="10_6iypd"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_i5arm"]
 sky_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
@@ -93,6 +94,15 @@ height = 0.1
 [sub_resource type="BoxMesh" id="BoxMesh_jsk3o"]
 size = Vector3(0.01, 0.01, 0.3)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6iypd"]
+bg_color = Color(0, 1, 0, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4arys"]
+bg_color = Color(1, 0, 0, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tereu"]
+bg_color = Color(0, 0, 1, 1)
+
 [node name="Node3D" type="Node3D"]
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
@@ -163,6 +173,35 @@ mesh = SubResource("BoxMesh_jsk3o")
 
 [node name="fish" parent="RigidBody3D" instance=ExtResource("7_jsk3o")]
 transform = Transform3D(-2.5, 0, 3.77489e-07, 0, 2.5, 0, -3.77489e-07, 0, -2.5, 0, 0.187169, -0.757209)
+
+[node name="CarInputs" type="PanelContainer" parent="RigidBody3D"]
+offset_right = 376.0
+offset_bottom = 299.0
+script = ExtResource("10_6iypd")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="RigidBody3D/CarInputs"]
+layout_mode = 2
+
+[node name="ProgressBar" type="ProgressBar" parent="RigidBody3D/CarInputs/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
+theme_override_styles/fill = SubResource("StyleBoxFlat_6iypd")
+fill_mode = 3
+
+[node name="ProgressBar2" type="ProgressBar" parent="RigidBody3D/CarInputs/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
+theme_override_styles/fill = SubResource("StyleBoxFlat_4arys")
+fill_mode = 3
+
+[node name="ProgressBar3" type="ProgressBar" parent="RigidBody3D/CarInputs/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
+theme_override_styles/fill = SubResource("StyleBoxFlat_tereu")
+fill_mode = 3
 
 [node name="CSGBox3D" type="CSGBox3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.3174, 13, -20)

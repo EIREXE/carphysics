@@ -9,6 +9,9 @@ enum WheelPos {
 	RR
 }
 
+var arb_front := 5.0
+var arb_rear := 3.2
+
 var wheels: Array[WheelInfo]
 
 var im := ImmediateMesh.new()
@@ -28,6 +31,9 @@ var engine := CarEngine.new()
 @onready var tire_forces_longitudinal_graph := TelemetryGraph.new()
 @onready var wheel_torque_graph := TelemetryGraph.new()
 
+var autoclutch_min := 1200.0
+var autoclutch_max := 1800.0
+
 enum DrivetrainTorquesGraphChannels {
 	CLUTCH_TORQUE,
 	ENGINE_TORQUE,
@@ -46,6 +52,7 @@ func _ready() -> void:
 	engine_rpm_draw.set_graph_channels(1)
 	engine_rpm_draw.channel_set_name(0, "Engine RPM")
 	var vbox := VBoxContainer.new()
+	vbox.hide()
 	vbox.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	add_child(vbox)
 	var hbox := GridContainer.new()
@@ -267,6 +274,14 @@ func aslr(delta: float, wheel_radius: float, wheel_angular_velocity: float, whee
 	var kp: float = (wheel_radius * wheel_angular_velocity - wheel_longitudinal_velocity) / max(abs(wheel_longitudinal_velocity), SAFETY_FACTOR * marginal_speed)
 	return kp
 
+func calculate_arb(stiffness: float, wheel_left: WheelInfo, wheel_right: WheelInfo):
+	var left_difference := wheel_left.spring_force - wheel_right.spring_force
+	var right_difference := wheel_right.spring_force - wheel_left.spring_force
+
+	wheel_left.spring_force += left_difference * stiffness
+	wheel_right.spring_force += right_difference * stiffness
+
+
 func _physics_process(delta: float) -> void:
 	im.clear_surfaces()
 	im.surface_begin(Mesh.PRIMITIVE_LINES)
@@ -290,9 +305,14 @@ func _physics_process(delta: float) -> void:
 	
 	engine_rpm_draw.graph_update(0, engine.angular_velocity * CarEngine.AV_2_RPM)
 	
-	drivetrain.update_clutch(0.0, drivetrain.current_gear != CarDrivetrain.GEAR_NEUTRAL, engine.angular_velocity, drivetrain.gearbox_angular_vel_to_upstream(drivetrain.differential_angular_vel_to_upstream([wheels[WheelPos.RL].angular_vel, wheels[WheelPos.RR].angular_vel])))
+	var clutch_amount := 1.0 - clamp(inverse_lerp(autoclutch_min, autoclutch_max, engine.angular_velocity * CarEngine.AV_2_RPM), 0.0, 1.0) as float
+	drivetrain.update_clutch(clutch_amount, drivetrain.current_gear != CarDrivetrain.GEAR_NEUTRAL, engine.angular_velocity, drivetrain.gearbox_angular_vel_to_upstream(drivetrain.differential_angular_vel_to_upstream([wheels[WheelPos.RL].angular_vel, wheels[WheelPos.RR].angular_vel])))
 	drivetrain_torques_graph.graph_update(DrivetrainTorquesGraphChannels.CLUTCH_TORQUE, drivetrain.clutch_torque)
 	drivetrain_torques_graph.graph_update(DrivetrainTorquesGraphChannels.ENGINE_TORQUE, engine.current_applied_torque)
+	
+	$CarInputs.throttle = engine.effective_throttle
+	$CarInputs.clutch = clutch_amount
+	$CarInputs.brake = 1.0 if Input.is_action_pressed("ui_down") else 0.0
 	var engine_rpm := engine.angular_velocity * CarEngine.AV_2_RPM
 	if engine_rpm <= 0.0:
 		$AudioStreamPlayer3D.volume_db = linear_to_db(0.0)
@@ -303,7 +323,8 @@ func _physics_process(delta: float) -> void:
 		if not $AudioStreamPlayer3D.playing:
 			$AudioStreamPlayer3D.playing = true
 			$AudioStreamPlayer3D.play()
-	var longitudinal_forces := 0.0
+			
+	# pre-solve wheel suspension forces
 	for wheel_i in range(wheels.size()):
 		var wheel := wheels[wheel_i]
 		var wp_wheel_attachment_point = to_global(wheel.attachment_point)
@@ -315,6 +336,7 @@ func _physics_process(delta: float) -> void:
 		raycast.exclude = [get_rid()]
 		var dss := get_world_3d().direct_space_state
 		var result := dss.intersect_ray(raycast)
+		wheel.hit = not result.is_empty()
 		if not result.is_empty():
 			var wheel_moment := 0.5 * wheel.mass * wheel.radius * wheel.radius
 			
@@ -330,34 +352,62 @@ func _physics_process(delta: float) -> void:
 			var longitudinal_wheel_speed := contact_velocity.dot(world_wheel_forward)
 			var lateral_wheel_speed := contact_velocity.dot(world_wheel_right)
 			var damping_force := contact_velocity_along_spring * 900.38
-			var out_spring_force := max(spring_force + damping_force, 0.0) as float
-			apply_force(-world_wheel_direction * (out_spring_force), to_global(wheel.attachment_point) - global_position)
+			var out_spring_force := spring_force + damping_force
+			wheel.spring_force = out_spring_force
+			wheel.wheel_speeds = Vector2(lateral_wheel_speed, longitudinal_wheel_speed)
+			wheel.hit_position = result.position
+			wheel.spring_compression = compression_depth
+			
+	# Calculate ARBs
+			
+	calculate_arb(arb_front, wheels[WheelPos.FL], wheels[WheelPos.FR])
+	calculate_arb(arb_rear, wheels[WheelPos.RL], wheels[WheelPos.RR])
+			
+	var longitudinal_forces := 0.0
+	for wheel_i in range(wheels.size()):
+		var wheel := wheels[wheel_i]
+		var wp_wheel_attachment_point = to_global(wheel.attachment_point)
+		var world_wheel_direction = global_transform.basis * wheel.direction
+		
+		var raycast := PhysicsRayQueryParameters3D.new()
+		raycast.from = wp_wheel_attachment_point
+		raycast.to = wp_wheel_attachment_point + world_wheel_direction * (wheel.max_length + wheel.radius)
+		raycast.exclude = [get_rid()]
+		var dss := get_world_3d().direct_space_state
+		if wheel.hit:
+			apply_force(-world_wheel_direction * (wheel.spring_force), to_global(wheel.attachment_point) - global_position)
+			
+			var longitudinal_wheel_speed := wheel.wheel_speeds.y
+			var lateral_wheel_speed := wheel.wheel_speeds.x
 			
 			var x_slip = calc_slip_angle(wheel, longitudinal_wheel_speed, lateral_wheel_speed, delta)
 			#var z_slip = aslr(delta, wheel.radius, wheel.angular_vel, longitudinal_wheel_speed, wheel_moment, mass, spring_force + damping_force)
 			var z_slip = calc_slip_ratio(wheel, longitudinal_wheel_speed, delta)
-			var combined_forces := brush(Vector2(x_slip, z_slip), out_spring_force)
+			var combined_forces := brush(Vector2(x_slip, z_slip), wheel.spring_force)
+			
+			var world_wheel_forward := global_transform.basis * wheel.get_local_forward()
+			var world_wheel_right := global_transform.basis * wheel.get_local_right()
 			
 			var z_force := -combined_forces.y
 			var x_force := combined_forces.x
 			im.surface_set_color(Color.BLUE)
-			apply_force(world_wheel_forward * z_force, result.position - global_position)
-			im.surface_add_vertex(result.position)
-			im.surface_add_vertex(result.position + world_wheel_forward * z_force)
+			apply_force(world_wheel_forward * z_force, wheel.hit_position - global_position)
+			im.surface_add_vertex(wheel.hit_position)
+			im.surface_add_vertex(wheel.hit_position + world_wheel_forward * z_force)
 			im.surface_set_color(Color.WHITE)
-			apply_force(world_wheel_right * x_force, result.position - global_position)
+			apply_force(world_wheel_right * x_force, wheel.hit_position - global_position)
 
-			wheel.mi.position = wheel.attachment_point + wheel.direction * (wheel.max_length - compression_depth)
+			wheel.mi.position = wheel.attachment_point + wheel.direction * (wheel.max_length - wheel.spring_compression)
 			wheel.mi.rotation.y = wheel.steer
 			wheel.mi.rotation.x += -wheel.angular_vel * delta
 			
 			im.surface_set_color(Color.RED)
-			im.surface_add_vertex(result.position)
-			im.surface_add_vertex(result.position + world_wheel_right * x_force)
+			im.surface_add_vertex(wheel.hit_position)
+			im.surface_add_vertex(wheel.hit_position + world_wheel_right * x_force)
 			im.surface_set_color(Color.WHITE)
 			
 			im.surface_add_vertex(wp_wheel_attachment_point)
-			im.surface_add_vertex(wp_wheel_attachment_point + world_wheel_direction * (wheel.max_length - compression_depth))
+			im.surface_add_vertex(wp_wheel_attachment_point + world_wheel_direction * (wheel.max_length - wheel.spring_compression))
 			
 			var net_torque := (-z_force) * wheel.radius
 			var wt := 0.0
@@ -367,8 +417,12 @@ func _physics_process(delta: float) -> void:
 			if wheel == wheels[WheelPos.RR]:
 				wt = drivetrain.differential_get_downstream_torque(drivetrain.gearbox_get_downstream_torque(drivetrain.clutch_torque))[1]
 				net_torque += wt
+			var wheel_moment := 0.5 * wheel.mass * wheel.radius * wheel.radius
 			if Input.is_action_pressed("hb") and not wheel.steerable:
-				var brake_torque := min(net_torque + ((wheel.angular_vel * wheel_moment) / delta), 1000.0) as float
+				var share := 0.69
+				if wheel_i in [WheelPos.FL, WheelPos.FR]:
+					share = 1.0 - share
+				var brake_torque := min(net_torque + ((wheel.angular_vel * wheel_moment) / delta), 1000.0 * share) as float
 				net_torque -= brake_torque
 			if Input.is_action_pressed("ui_down"):
 				var brake_torque := min(net_torque + ((wheel.angular_vel * wheel_moment) / delta), 500.0) as float

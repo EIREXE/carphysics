@@ -18,6 +18,10 @@ var steerable := false
 var last_torque := 0.0
 var inertia := 0.0
 var spring_compression := 0.0
+var hit := false
+var spring_force := 0.0
+var wheel_speeds: Vector2
+var hit_position: Vector3
 
 enum DifferentialSide {
 	NOT_DRIVEN,
